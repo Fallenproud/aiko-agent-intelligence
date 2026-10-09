@@ -98,8 +98,20 @@ class AuthChatTests(unittest.TestCase):
         res=self.chat(self.a,"threads.custom_action",{"thread_id":widget["thread_id"],
                        "item_id":widget["id"],"action":{"type":action["type"],"payload":action["payload"]}})
         self.assertEqual(res.status_code,200,res.text)
+
         self.assertIn("Avvist",res.text)
         self.assertEqual(self.a.get("/api/runs/"+rid).json()["approval"],"pending")
+
+    def test_history_large_page_request_and_reload(self):
+        widget = self.new_thread()
+        response = self.chat(self.a, "threads.list", {"limit": 1000})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["data"][0]["id"], widget["thread_id"])
+        self.assertEqual(self.chat(self.b, "threads.list", {"limit": 1000}).json()["data"], [])
+        rows = [{"id": str(i)} for i in range(101)]
+        page, more = self.app.state.chat.store.page(rows, None, 1000)
+        self.assertEqual(len(page), 100)
+        self.assertTrue(more)
 
 
 if __name__=="__main__":

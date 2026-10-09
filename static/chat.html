@@ -1,0 +1,24 @@
+<!doctype html><html lang="nb"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AIKO · ChatKit</title>
+<style>:root{color-scheme:dark}body{margin:0;background:#101412;color:#eaf0eb;font:16px/1.6 system-ui}header{padding:16px 24px;border-bottom:1px solid #354137;display:flex;justify-content:space-between;gap:16px}a{color:#b3f36d}#state{padding:12px 24px;color:#d7c581}openai-chatkit{display:block;height:calc(100dvh - 130px);max-width:1000px;margin:auto}button{background:#b3f36d;color:#17200f;padding:10px;border:0;border-radius:6px;font:inherit}input{font:inherit;padding:8px;min-width:200px}</style>
+<header><strong>AIKO / Sophie-X · ChatKit</strong><a href="/">Kjøringsoversikt</a></header>
+<div id="state">Kobler til …</div>
+<div id="config" hidden style="padding:16px 24px"><label>ChatKit domain key <input id="domain-key" value="local-dev"></label> <button id="connect">Koble til</button><p>local-dev gjelder lokal utvikling. Ved domeneverifiseringsfeil bruker du en registrert domain key. Dette er ingen API-hemmelighet.</p></div>
+<openai-chatkit id="chatkit"></openai-chatkit>
+<script src="https://cdn.platform.openai.com/deployments/chatkit/chatkit.js" async onerror="document.getElementById('state').textContent='ChatKit-klienten kunne ikke lastes fra OpenAI. Backend og kjøringsoversikten kan fortsatt brukes.'"></script>
+<script>
+let csrf=null;
+async function boot(){
+ const response=await fetch('/api/auth/me');
+ if(!response.ok){document.getElementById('state').textContent='Logg inn i kjøringsoversikten før du åpner ChatKit.';return;}
+ csrf=(await response.json()).csrf;
+ const config=await fetch('/api/chatkit/config');if(!config.ok){document.getElementById('state').textContent='ChatKit domain key er ikke konfigurert på serveren.';return;}document.getElementById('domain-key').value=(await config.json()).domain_key;
+ const ready=Promise.race([customElements.whenDefined('openai-chatkit'),new Promise((_,reject)=>setTimeout(()=>reject(Error('ChatKit-klienten ble ikke lastet.')),15000))]);
+ try{await ready;}catch(e){document.getElementById('state').textContent=e.message;return;}
+ const chat=document.getElementById('chatkit');
+ function connect(){chat.setOptions({api:{url:'/chatkit',domainKey:document.getElementById('domain-key').value,fetch:async(input,init)=>{const h=new Headers(init?.headers);h.set('X-CSRF-Token',csrf);return fetch(input,{...init,headers:h,credentials:'same-origin'});}},theme:{colorScheme:'dark'},composer:{attachments:{enabled:false}}});document.getElementById('state').textContent='Faktisk ChatKit · faste statussvar · simulert verktøy. Send en melding for å få godkjenningskortet.';}
+ chat.addEventListener('chatkit.error',()=>{document.getElementById('state').textContent='ChatKit meldte en feil. Kontroller tilkobling og domain key. Backend er ikke erstattet med en simulert chat.';document.getElementById('config').hidden=false;});
+ document.getElementById('connect').onclick=connect;
+ connect();
+}
+boot().catch(e=>document.getElementById('state').textContent=e.message);
+</script></html>

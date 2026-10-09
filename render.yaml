@@ -1,0 +1,22 @@
+# Prepared deployment configuration. No service has been created.
+# This configuration requires paid compute and a persistent disk.
+services:
+  - type: web
+    name: aiko-agent-intelligence
+    runtime: python
+    plan: 0.5c-512mb
+    region: frankfurt
+    buildCommand: pip install -r requirements-lock.txt
+    startCommand: python start_hosted.py
+    healthCheckPath: /healthz
+    disk:
+      name: aiko-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: AIKO_DB
+        value: /var/data/aiko.sqlite3
+      - key: AIKO_COOKIE_SECURE
+        value: "1"
+      - key: AIKO_CHATKIT_DOMAIN_KEY
+        sync: false

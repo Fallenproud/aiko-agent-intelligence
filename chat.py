@@ -49,8 +49,11 @@ class SQLiteChatStore(ChatStore[dict]):
                        (thread.id,context["owner"],run["id"],thread.model_dump_json()))
 
     def page(self, rows, after, limit):
-        if not 1 <= limit <= 100:
-            raise ValueError("Page limit must be 1–100.")
+        if limit < 1:
+            raise ValueError("Page limit must be positive.")
+        # ChatKit clients may request larger pages. Bound our result size
+        # without rejecting a valid SDK request; has_more supplies the cursor.
+        limit = min(limit, 100)
         if after:
             positions = [i for i,r in enumerate(rows) if r["id"]==after]
             if not positions:

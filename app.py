@@ -11,6 +11,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import ValidationError
 from chatkit.server import StreamingResult
 from chatkit.store import NotFoundError
+from cloudflare_access import install_access_boundary
 from auth import Auth
 from chat import SQLiteChatStore, AikoChatServer
 from models import Decision, Login
@@ -47,6 +48,7 @@ def create_app(db_path=None,worker=True):
 
     app=FastAPI(title='AIKO Authenticated Runtime',version='0.3.0',lifespan=lifespan)
     app.state.store=store;app.state.auth=auth;app.state.chat=chat
+    install_access_boundary(app)
     app.add_middleware(TrustedHostMiddleware,allowed_hosts=['localhost','127.0.0.1','[::1]','testserver']+([urlsplit(public_origin).hostname] if public_origin else []))
 
     @app.middleware('http')
